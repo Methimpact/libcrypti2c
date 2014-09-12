@@ -29,6 +29,7 @@
 #include "util.h"
 #include "log.h"
 #include "command_util.h"
+#include <errno.h>
 
 const char*
 status_to_string (enum CI2C_STATUS_RESPONSE rsp)
@@ -301,13 +302,19 @@ ci2c_get_response (int fd, const int MAX_RECV_LEN, struct timespec wait_time)
            tmp.ptr[0] > STATUS_RSP_LEN &&
            tmp.ptr[0] <= MAX_RECV_LEN)
     {
+      ci2c_print_hex_string ("First part of packet", tmp.ptr, STATUS_RSP_LEN);
       const int PACKET_SIZE = tmp.ptr[0];
       rsp = ci2c_make_buffer (PACKET_SIZE);
       read_bytes = ci2c_read (fd, rsp.ptr + STATUS_RSP_LEN, PACKET_SIZE);
+
+      CI2C_LOG (DEBUG, "Read bytes: %d, PACKET_SIZE: %d", read_bytes, PACKET_SIZE);
+
       if (read_bytes + STATUS_RSP_LEN == PACKET_SIZE)
         {
+          ci2c_print_hex_string ("Second part of packet", rsp.ptr + STATUS_RSP_LEN, read_bytes);
           memcpy (rsp.ptr, tmp.ptr, STATUS_RSP_LEN);
           ci2c_free_octet_buffer (tmp);
+          ci2c_print_hex_string ("Packet", rsp.ptr, PACKET_SIZE);
         }
       else
         {
@@ -333,6 +340,7 @@ ci2c_get_response (int fd, const int MAX_RECV_LEN, struct timespec wait_time)
             ci2c_make_buffer (rsp.len - CI2C_CRC_16_LEN - 1);
 
           memcpy (data.ptr, rsp.ptr + 1, data.len);
+          ci2c_print_hex_string ("Post CRC data:", data.ptr, data.len);
           ci2c_free_octet_buffer (rsp);
           rsp = data;
         }
@@ -360,13 +368,15 @@ ci2c_send_and_get_rsp (int fd,
 
   assert (NULL != send_buf);
 
+  ci2c_print_hex_string ("Sending send_and_get_rsp", send_buf, send_buf_len);
+
   if (1 < (result = ci2c_write (fd, send_buf, send_buf_len)))
     {
       rsp = ci2c_get_response (fd, MAX_RECV_LEN, wait_time);
     }
   else
     {
-      CI2C_LOG (DEBUG, "Send failed.");
+      CI2C_LOG (DEBUG, "ci2c_send_and_get_response_Send failed. Error: %s", strerror (errno));
     }
 
   return rsp;
