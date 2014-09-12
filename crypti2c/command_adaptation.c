@@ -305,26 +305,39 @@ ci2c_get_response (int fd, const int MAX_RECV_LEN, struct timespec wait_time)
       ci2c_print_hex_string ("First part of packet", tmp.ptr, STATUS_RSP_LEN);
       const int PACKET_SIZE = tmp.ptr[0];
       rsp = ci2c_make_buffer (PACKET_SIZE);
-      read_bytes = ci2c_read (fd, rsp.ptr + STATUS_RSP_LEN, PACKET_SIZE);
 
-      CI2C_LOG (DEBUG, "Read bytes: %d, PACKET_SIZE: %d", read_bytes, PACKET_SIZE);
+      /* Read the rest of the message */
+      read_bytes = ci2c_read (fd,
+                              rsp.ptr + STATUS_RSP_LEN,
+                              PACKET_SIZE - STATUS_RSP_LEN);
+
+      CI2C_LOG (DEBUG, "Read bytes: %d, PACKET_SIZE: %d",
+                read_bytes,
+                PACKET_SIZE);
 
       if (read_bytes + STATUS_RSP_LEN == PACKET_SIZE)
         {
-          ci2c_print_hex_string ("Second part of packet", rsp.ptr + STATUS_RSP_LEN, read_bytes);
+          ci2c_print_hex_string ("Second part of packet",
+                                 rsp.ptr + STATUS_RSP_LEN,
+                                 read_bytes);
+
           memcpy (rsp.ptr, tmp.ptr, STATUS_RSP_LEN);
-          ci2c_free_octet_buffer (tmp);
+
           ci2c_print_hex_string ("Packet", rsp.ptr, PACKET_SIZE);
         }
       else
         {
           CI2C_LOG (DEBUG, "Error reading rest of response.");
         }
+
+      /* tmp is no longer needed. Either everything is in rsp or
+         there was an error and we don't want to keep the data */
+      ci2c_free_octet_buffer (tmp);
     }
   /* Otherwise: Error */
   else
     {
-      CI2C_LOG (DEBUG, "Read failed.");
+      CI2C_LOG (DEBUG, "ci2c_get_response Read failed.");
     }
 
   /* Data is read, check the CRC before returning */
@@ -332,7 +345,7 @@ ci2c_get_response (int fd, const int MAX_RECV_LEN, struct timespec wait_time)
     {
       if (ci2c_is_crc_16_valid (rsp.ptr,
                                 rsp.len - CI2C_CRC_16_LEN,
-                                rsp.ptr - CI2C_CRC_16_LEN))
+                                rsp.ptr + rsp.len - CI2C_CRC_16_LEN))
         {
           CI2C_LOG (DEBUG, "Received CRC checks out.");
           /* Strip off length byte and CRC and return just the data */
@@ -341,6 +354,10 @@ ci2c_get_response (int fd, const int MAX_RECV_LEN, struct timespec wait_time)
 
           memcpy (data.ptr, rsp.ptr + 1, data.len);
           ci2c_print_hex_string ("Post CRC data:", data.ptr, data.len);
+
+          /* rsp here can == tmp, if the packet was a status, in which
+          case we want to clear it. Or it can be a different buffer,
+          in which tmp was already cleared */
           ci2c_free_octet_buffer (rsp);
           rsp = data;
         }
