@@ -24,8 +24,46 @@
 #include <stdarg.h>
 #include <time.h>
 #include <assert.h>
+#include <syslog.h>
 
 static enum CI2C_LOG_LEVEL CURRENT_LOG_LEVEL = INFO;
+
+int ci2c_log_level_to_syslog (enum CI2C_LOG_LEVEL lvl)
+{
+  int rsp = LOG_DEBUG;
+
+  switch (lvl)
+    {
+    case EMERG:
+      rsp = LOG_EMERG;
+      break;
+    case ALERT:
+      rsp = LOG_ALERT;
+      break;
+    case CRIT:
+      rsp = LOG_CRIT;
+      break;
+    case ERR:
+      rsp = LOG_ERR;
+      break;
+    case WARNING:
+      rsp = LOG_WARNING;
+      break;
+    case NOTICE:
+      rsp = LOG_NOTICE;
+      break;
+    case INFO:
+      rsp = LOG_INFO;
+      break;
+    case DEBUG:
+    default:
+      rsp = LOG_DEBUG;
+      break;
+    }
+
+  return rsp;
+}
+
 
 void
 CI2C_LOG(enum CI2C_LOG_LEVEL lvl, const char *format, ...)
@@ -34,9 +72,11 @@ CI2C_LOG(enum CI2C_LOG_LEVEL lvl, const char *format, ...)
     {
       va_list args;
       va_start(args, format);
-      vfprintf(stdout, format, args);
-      printf("\n");
+
+      vsyslog (ci2c_log_level_to_syslog (lvl), format, args);
+
       va_end(args);
+
     }
 }
 
@@ -44,6 +84,8 @@ void
 ci2c_set_log_level(enum CI2C_LOG_LEVEL lvl)
 {
   CURRENT_LOG_LEVEL = lvl;
+
+  openlog ("libcrypti2c", 0, LOG_USER);
 
 }
 
@@ -55,19 +97,27 @@ ci2c_print_hex_string(const char *str, const uint8_t *hex, unsigned int len)
     return;
 
   unsigned int i;
+  const int MAX_USER_STR_LEN = 100;
+
+  const int TOTAL_LEN = strnlen (str, MAX_USER_STR_LEN) + 3 + (len * 5) + 1;
 
   assert(NULL != str);
   assert(NULL != hex);
 
-  printf("%s : ", str);
+  char *msg = (char *) ci2c_malloc_wipe (TOTAL_LEN);
+
+  int offset = sprintf (msg, "%s : ", str);
 
   for (i = 0; i < len; i++)
     {
-      if (i > 0) printf(" ");
-      printf("0x%02X", hex[i]);
+      offset = offset + sprintf (msg + offset, "0x%02X ", hex[i]);
     }
 
-  printf("\n");
+  sprintf (msg + offset, "%s", "\n");
+
+  CI2C_LOG(DEBUG, "%s", msg);
+
+  ci2c_free_wipe (msg, TOTAL_LEN);
 
 }
 

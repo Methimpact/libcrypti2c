@@ -26,8 +26,12 @@
 
 enum CI2C_LOG_LEVEL
   {
-    SEVERE = 0,
+    EMERG = 0,
+    ALERT,
+    CRIT,
+    ERR,
     WARNING,
+    NOTICE,
     INFO,
     DEBUG
   };
