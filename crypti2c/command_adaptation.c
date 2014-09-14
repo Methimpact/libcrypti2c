@@ -290,6 +290,7 @@ ci2c_get_response (int fd, const int MAX_RECV_LEN, struct timespec wait_time)
 
   if (read_bytes == STATUS_RSP_LEN && tmp.ptr[0] == STATUS_RSP_LEN)
     {
+      CI2C_LOG (DEBUG, "Received status rsp");
       ci2c_print_hex_string ("Status RSP", tmp.ptr, STATUS_RSP_LEN);
       enum CI2C_STATUS_RESPONSE status = RSP_COMM_ERROR;
       status = get_status_response (tmp.ptr);
