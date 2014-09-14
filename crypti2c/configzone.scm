@@ -12,6 +12,7 @@
             bytevector->hex-string
             ci2c-send-receive
             ci2c-make-random-cmd
+            ci2c-make-write4-cmd
             atsha204-command-serialize
             atsha204-send))
 
@@ -85,7 +86,7 @@ contiguous bytes of the entire configuration zone"
     ((OTP-ZONE) #x01)
     ((DATA-ZONE) #x02)))
 
-(define (make-write4-cmd zone addr data)
+(define (ci2c-make-write4-cmd zone addr data)
   (make-atsha204-command
    'COMMAND-WRITE (make-zone-bits zone) addr data 42000000 4))
 
@@ -99,6 +100,16 @@ contiguous bytes of the entire configuration zone"
 
 (hash-set! opcodes 'COMMAND-WRITE #x12)
 (hash-set! opcodes 'COMMAND-RANDOM #x1B)
+
+
+(define status-codes (make-hash-table))
+(hash-set! status-codes 0 'SUCCESS)
+(hash-set! status-codes #x01 'CHECKMAC-MISCOMPARE)
+(hash-set! status-codes #x03 'PARSE-ERROR)
+(hash-set! status-codes #x0F 'EXECUTION-ERROR)
+(hash-set! status-codes #x11 'IM-AWAKE)
+(hash-set! status-codes #xFF 'CRC-OR-COMM-ERROR)
+(hash-set! status-codes #x05 'ECC-ERROR)
 
 (define (atsha204-command-apply-crc bv)
   "Apply the CRC to the already serialized command. Requires some byte moving"
