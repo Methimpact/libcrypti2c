@@ -81,7 +81,9 @@ ci2c_wakeup(int fd)
      guarantee it is the correct fd */
 
   if(fcntl(fd, F_GETFD) < 0)
-    perror("Invalid FD.\n");
+    {
+      CI2C_LOG (DEBUG, "%s: %m", "Invalid FD");
+    }
 
   while (!awake)
     {
@@ -140,6 +142,8 @@ ci2c_write(int fd, const unsigned char *buf, unsigned int len)
 {
   assert(NULL != buf);
 
+  CI2C_LOG (DEBUG, "About to write");
+
   return write(fd, buf, len);
 
 }
@@ -176,6 +180,10 @@ ci2c_read_sleep(int fd,
             {
               CI2C_LOG (DEBUG, "Irritably woken from peaceful slumber.");
             }
+        }
+      else
+        {
+          CI2C_LOG (DEBUG, "Received initial packet.");
         }
 
     }
