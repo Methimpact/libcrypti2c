@@ -7,14 +7,14 @@
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-9 gnu)
   #:use-module (srfi srfi-11)
-  #:export (xml-file->config-bv
+  #:export (ci2c-xml-file->config-bv
             ci2c-crc16
             bytevector->hex-string
             ci2c-send-receive
             ci2c-make-random-cmd
             ci2c-make-write4-cmd
-            atsha204-command-serialize
-            atsha204-send))
+            ci2c-atsha204-command-serialize
+            ci2c-atsha204-send))
 
 (load-extension "/usr/local/lib/libcrypti2c-0.1" "init_crypti2c")
 
@@ -56,7 +56,7 @@ and return the byte vector of the zone"
          [byte-list (map (lambda [x] (elementstr->elementint x)) config)])
     (u8-list->bytevector (concatenate (map cadr byte-list)))))
 
-(define (xml-file->config-bv filename)
+(define (ci2c-xml-file->config-bv filename)
   "Load the xml-file FILENAME and return a byte vector BV containing the
 contiguous bytes of the entire configuration zone"
   (call-with-input-file filename xml-file-port->config-bv))
@@ -122,7 +122,7 @@ contiguous bytes of the entire configuration zone"
            (bytevector-copy! crc 0 bv-crc (- bv-crc-len crc-len) crc-len)
            bv-crc)))
 
-(define (atsha204-command-serialize cmd)
+(define (ci2c-atsha204-command-serialize cmd)
   "Serialize the command for transmission to the device.
 This applies the CRC as well."
   (let* ([len-sans-crc (+ 1 1 1 1 2 (length (atsha204-command-data cmd)))]
@@ -164,7 +164,7 @@ This applies the CRC as well."
                     bv)))
          (split-4 sxml-lst))))
 
-(define (atsha204-send cmd)
+(define (ci2c-atsha204-send cmd)
   (let ([to-send (atsha204-command-serialize cmd)])
     (ci2c-send-receive to-send
                        (atsha204-command-wait-time cmd)

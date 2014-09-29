@@ -49,3 +49,7 @@ m4/
 .libs/
 *.la
 /crypti2c-1.0.pc
+/crc-test.log
+/ar-lib
+/config.rpath
+/t.log

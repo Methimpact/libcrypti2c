@@ -86,7 +86,8 @@ nobase_crypti2c_include_HEADERS = libcrypti2c.h \
 
 
 ## Scheme source
-SCM_SOURCES = crypti2c/configzone.scm
+SCM_SOURCES = crypti2c/configzone.scm \
+              crypti2c/testing.scm
 
 pkgguilesitedir = $(GUILE_SITE)
 
