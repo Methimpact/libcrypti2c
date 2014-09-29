@@ -14,7 +14,8 @@
             ci2c-make-random-cmd
             ci2c-make-write4-cmd
             ci2c-atsha204-command-serialize
-            ci2c-atsha204-send))
+            ci2c-atsha204-send
+            ci2c-burn-config))
 
 (load-extension "/usr/local/lib/libcrypti2c-0.1" "init_crypti2c")
 
@@ -154,18 +155,19 @@ This applies the CRC as well."
             [last (drop lst 4)])
         (cons first (split-4 last)))))
 
-(define (burn-config sxml-bytevector)
+(define (ci2c-burn-config sxml-bytevector)
   (let ([sxml-lst (bytevector->u8-list sxml-bytevector)]
         [index 0])
     (map (lambda [x]
-           (let ([bv (atsha204-command-serialize
-                      (make-write4-cmd 'CONFIG-ZONE index x))])
+           (let ([cmd (ci2c-make-write4-cmd 'CONFIG-ZONE index x)])
              (begin (set! index (+ index 4))
-                    bv)))
+                    (hash-ref status-codes
+                              (bytevector-u8-ref
+                               (ci2c-atsha204-send cmd) 0)))))
          (split-4 sxml-lst))))
 
 (define (ci2c-atsha204-send cmd)
-  (let ([to-send (atsha204-command-serialize cmd)])
+  (let ([to-send (ci2c-atsha204-command-serialize cmd)])
     (ci2c-send-receive to-send
                        (atsha204-command-wait-time cmd)
                        (atsha204-command-expected-rsp-len cmd))))
